@@ -270,14 +270,12 @@ Inode get_inode_from_inumber(int inum) {
         printf("Error: Invalid inode number.\n");
         exit(1);  // Handle the error as needed
     }
-
     // Get the address of the inode from the imap
     int inode_address = imap[inum] ; //* size(Block);
     if (inode_address == -1) {
         printf("Error: Inode not found.\n");
         exit(1);
     }
-
     // Read the inode from disk at the given address
     ///Inode inode; uncomment
     Inode inode = disk[inode_address].block.inode_block; ///Delete THIS later
@@ -297,14 +295,12 @@ int lookup(int pinum, char* name){
     	if (pInode.pointers[i] == -1) {
         	continue; // Skip empty pointers
     	}
-
     	// Access the directory block
     	Block directory_block = disk[pInode.pointers[i]];
     	if (directory_block.block_type != DIRECTORY_BLOCK) {
         	printf("Error: Block is not a directory block.\n");
         	return -1;
     	}
-
      	// Iterate over directory entries
     	for (int j = 0; j < NUM_DIR_ENTRIES; j++) {
         	DirectoryEntry entry = directory_block.block.directory_block.entries[j];
@@ -312,8 +308,7 @@ int lookup(int pinum, char* name){
             	// Return inode number if name matches
             	printf("File Found.\n");
             	return entry.inode_number;
-        	}
-    	}
+        	}}
 	}
 	// Return -1 if not found
 	//printf("File or Directory not found.\n");
@@ -329,14 +324,12 @@ int create(int pinum, int type, char *name) {
         printf("Error: File or directory already exists.\n");
         return -1;
     }
-
     // 2: Get parent inode
     Inode pInode = get_inode_from_inumber(pinum);
     if (pInode.file_type != 1) {
         printf("Error: Parent inode is not a directory.\n");
         return -1;
     }
-
     // 3: Find a free directory entry in the parent directory
     int free_entry_index = -1;
     DirectoryBlock parent_dir_block;
@@ -355,13 +348,11 @@ int create(int pinum, int type, char *name) {
             }
         }
     }
-
     // Error: No space in the directory
     if (free_entry_index == -1) {
         printf("Error: No space in parent directory.\n");
         return -1;
     }
-
     // 4: Allocate a new inode
     int new_inum = -1;
     for (int i = 0; i < MAX_INODES; i++) {
@@ -374,7 +365,6 @@ int create(int pinum, int type, char *name) {
         printf("Error: No more available inodes.\n");
         return -1;
     }
-
     // 5: Create new inode
     Inode new_inode = make_inode(type, 0);  // New inode with the given type and size 0
     if (type == DIR) {
@@ -389,18 +379,16 @@ int create(int pinum, int type, char *name) {
         int new_data_block_addr = log_block(package_data_block(new_data_block)); // Log the data block
         new_inode.pointers[0] = new_data_block_addr; // Point to the data block
     }
-
     // 6: Log the new inode
-
     int new_inode_address = log_block(package_inode(new_inode));
-
+	
     // 7: Update parent directory entry
     strcpy(parent_dir_block.entries[free_entry_index].name, name);
     parent_dir_block.entries[free_entry_index].inode_number = new_inum;
 
     // 8: Log the updated parent directory block
     int parent_dir_block_addr = log_block(package_directory_block(parent_dir_block));
-
+	
     // 9: new parent inode's pointer
     int new_size = pInode.file_size + 1;
     Inode new_pInode = make_inode(1, new_size ) ;
@@ -413,23 +401,22 @@ int create(int pinum, int type, char *name) {
     imap[new_inum] = new_inode_address;
     imap[pinum] = updated_parent_inode_addr;
 
-    // Step 12: Log the updated imap chunk
+    // 12: Log the updated imap chunk
     int chunk_num = inum_to_chunk(new_inum);
     ImapChunk updated_imap_chunk = make_imap_chunk(chunk_num);
     int updated_imap_chunk_addr = log_block(package_imap_chunk(updated_imap_chunk));
 
-    // Step 13: Update the checkpoint region
+    // 13: Update the checkpoint region
     CR.entries[chunk_num] = updated_imap_chunk_addr;
     log_block(package_checkpoint(CR));
     printf("File %s successfully created.\n",name);
-    return 0;  // Success
+    return 0;  
 }
 
-
-
 int main() {
+	
 
-     disk_file = fopen("disk_log.bin", "wb");
+    disk_file = fopen("disk_log.bin", "wb");
     if (disk_file == NULL) {
         perror("fopen");
         exit(1);
@@ -447,5 +434,4 @@ int main() {
     // Write the disk array to the file
     fwrite(disk, sizeof(Block), disk_len, disk_file);
     return 0;
-
 }
